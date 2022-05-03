@@ -28,8 +28,10 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Run a lexer/parser combo, optionally printing tree string or generating
- *  postscript file. Optionally taking input file.
+/**
+ * Runs a lexer/parser combo. This tool optionally takes input file(s) and optionally prints a tree string or generates
+ * a postscript file. If no input files were provided, the tool reads from the "standard" input stream
+ * instead.
  *
  *  $ java org.antlr.v4.runtime.misc.TestRig GrammarName startRuleName
  *        [-tree]
@@ -38,6 +40,9 @@ import java.util.List;
  *        [-diagnostics]
  *        [-SLL]
  *        [input-filename(s)]
+ *
+ *  GrammarName: The tool expects the full grammar name if the lexer/parser were generated using a package definition
+ *  (e.g. com.package.Language)
  */
 public class TestRig {
 	public static final String LEXER_START_RULE_NAME = "tokens";
