@@ -29,12 +29,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Runs a lexer/parser combo. This tool optionally takes input file(s) and optionally prints a tree string or generates
- * a postscript file. If no input files were provided, the tool reads from the "standard" input stream
+ * Runs a lexer/parser combo. This tool optionally takes input file(s) and optionally prints a tree string, a cfg, or
+ * generates a postscript file. If no input files were provided, the tool reads from the "standard" input stream
  * instead.
  *
  *  $ java org.antlr.v4.runtime.misc.TestRig GrammarName startRuleName
  *        [-tree]
+ *        [-cfg]
  *        [-tokens] [-gui] [-ps file.ps]
  *        [-trace]
  *        [-diagnostics]
@@ -51,6 +52,7 @@ public class TestRig {
 	protected String startRuleName;
 	protected final List<String> inputFiles = new ArrayList<String>();
 	protected boolean printTree = false;
+	protected boolean printCfg = false;
 	protected boolean gui = false;
 	protected String psFile = null;
 	protected boolean showTokens = false;
@@ -62,7 +64,7 @@ public class TestRig {
 	public TestRig(String[] args) throws Exception {
 		if ( args.length < 2 ) {
 			System.err.println("java org.antlr.v4.gui.TestRig GrammarName startRuleName\n" +
-							   "  [-tokens] [-tree] [-gui] [-ps file.ps] [-encoding encodingname]\n" +
+							   "  [-tokens] [-tree] [-cfg] [-gui] [-ps file.ps] [-encoding encodingname]\n" +
 							   "  [-trace] [-diagnostics] [-SLL]\n"+
 							   "  [input-filename(s)]");
 			System.err.println("Use startRuleName='tokens' if GrammarName is a lexer grammar.");
@@ -84,6 +86,9 @@ public class TestRig {
 			if ( arg.equals("-tree") ) {
 				printTree = true;
 			}
+		    if ( arg.equals("-cfg") ) {
+			    printCfg = true;
+		    }
 			if ( arg.equals("-gui") ) {
 				gui = true;
 			}
@@ -214,6 +219,9 @@ public class TestRig {
 				if ( printTree ) {
 					System.out.println(tree.toStringTree(parser));
 				}
+			    if ( printCfg ) {
+				  System.out.println("Hello, CFG Test here. How is it going today ?");
+			    }
 				if ( gui ) {
 					Trees.inspect(tree, parser);
 				}
