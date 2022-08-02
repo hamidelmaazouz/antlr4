@@ -106,6 +106,7 @@ public class Tool {
     public boolean log = false;
 	public boolean gen_listener = true;
 	public boolean gen_visitor = false;
+	public boolean gen_cfgbuilder = false;
 	public boolean gen_dependencies = false;
 	public String genPackage = null;
 	public Map<String, String> grammarOptions = null;
@@ -124,6 +125,8 @@ public class Tool {
 		new Option("gen_listener",                "-no-listener", "don't generate parse tree listener"),
 		new Option("gen_visitor",                 "-visitor", "generate parse tree visitor"),
 		new Option("gen_visitor",                 "-no-visitor", "don't generate parse tree visitor (default)"),
+		new Option("gen_cfgbuilder",              "-cfgbuilder", "generate control-flow graph builder"),
+		new Option("gen_cfgbuilder",              "-no-cfgbuilder", "don't generate control-flow graph builder (default)"),
 		new Option("genPackage",                  "-package", OptionArgType.STRING, "specify a package/namespace for the generated code"),
 		new Option("gen_dependencies",            "-depend", "generate file dependencies"),
 		new Option("",                            "-D<option>=value", "set/override a grammar-level option"),

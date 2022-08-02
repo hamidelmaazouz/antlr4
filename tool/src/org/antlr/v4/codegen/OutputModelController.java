@@ -12,6 +12,7 @@ import org.antlr.v4.codegen.model.Action;
 import org.antlr.v4.codegen.model.AltBlock;
 import org.antlr.v4.codegen.model.BaseListenerFile;
 import org.antlr.v4.codegen.model.BaseVisitorFile;
+import org.antlr.v4.codegen.model.CfgBuilderFile;
 import org.antlr.v4.codegen.model.Choice;
 import org.antlr.v4.codegen.model.CodeBlockForAlt;
 import org.antlr.v4.codegen.model.CodeBlockForOuterMostAlt;
@@ -129,6 +130,11 @@ public class OutputModelController {
 	public OutputModelObject buildBaseVisitorOutputModel(boolean header) {
 		CodeGenerator gen = delegate.getGenerator();
 		return new BaseVisitorFile(delegate, gen.getBaseVisitorFileName(header));
+	}
+
+	public OutputModelObject buildCfgBuilderOutputModel(boolean header) {
+		CodeGenerator gen = delegate.getGenerator();
+		return new CfgBuilderFile(delegate, gen.getCfgBuilderFileName(header));
 	}
 
 	public ParserFile parserFile(String fileName) {

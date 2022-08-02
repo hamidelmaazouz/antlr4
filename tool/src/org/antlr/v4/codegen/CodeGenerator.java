@@ -106,6 +106,11 @@ public class CodeGenerator {
 	public ST generateBaseVisitor() { return generateBaseVisitor(false); }
 	public ST generateBaseVisitor(boolean header) { return walk(createController().buildBaseVisitorOutputModel(header), header); }
 
+	public ST generateCfgBuilder() {
+		OutputModelObject modelObject = createController().buildCfgBuilderOutputModel(false);
+		return walk(modelObject, false);
+	}
+
 	/** Generate a token vocab file with all the token names/types.  For example:
 	 *  ID=7
 	 *  FOR=8
@@ -158,6 +163,10 @@ public class CodeGenerator {
 		target.genFile(g, outputFileST, getBaseVisitorFileName(header));
 	}
 
+	public void writeCfgBuilder(ST outputFileST, boolean header) {
+	  	target.genFile(g, outputFileST, getCfgBuilderFileName(header));
+	}
+
 	public void writeVocabFile() {
 		// write out the vocab interchange file; used by antlr,
 		// does not change per target
@@ -190,12 +199,14 @@ public class CodeGenerator {
 	public String getVisitorFileName() { return getVisitorFileName(false); }
 	public String getBaseListenerFileName() { return getBaseListenerFileName(false); }
 	public String getBaseVisitorFileName() { return getBaseVisitorFileName(false); }
+	public String getCfgBuilderFileName() { return getCfgBuilderFileName(false);}
 
 	public String getRecognizerFileName(boolean header) { return target.getRecognizerFileName(header); }
 	public String getListenerFileName(boolean header) { return target.getListenerFileName(header); }
 	public String getVisitorFileName(boolean header) { return target.getVisitorFileName(header); }
 	public String getBaseListenerFileName(boolean header) { return target.getBaseListenerFileName(header); }
 	public String getBaseVisitorFileName(boolean header) { return target.getBaseVisitorFileName(header); }
+  	public String getCfgBuilderFileName(boolean header) { return target.getCfgBuilderFileName(header);}
 
 	/** What is the name of the vocab file generated for this grammar?
 	 *  Returns null if no .tokens file should be generated.

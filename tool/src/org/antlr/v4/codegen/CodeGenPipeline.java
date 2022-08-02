@@ -100,6 +100,12 @@ public class CodeGenPipeline {
 					}
 				}
 			}
+			if ( g.tool.gen_cfgbuilder ) {
+				ST cfgBuilder = gen.generateCfgBuilder();
+				if (g.tool.errMgr.getNumErrors() == errorCount) {
+					gen.writeCfgBuilder(cfgBuilder, false);
+				}
+			}
 		}
 		gen.writeVocabFile();
 	}

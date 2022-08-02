@@ -20,6 +20,20 @@
         <maven>3.8</maven>
     </prerequisites>
 
+    <dependencies>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.24</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>31.1-jre</version>
+        </dependency>
+    </dependencies>
+
 	<properties>
 		<!-- Assumes dot is in the system path, or specified for the build. -->
 		<dot.path>dot</dot.path>

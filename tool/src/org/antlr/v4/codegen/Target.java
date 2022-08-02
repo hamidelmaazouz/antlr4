@@ -499,6 +499,13 @@ public abstract class Target {
 		return listenerName+extST.render();
 	}
 
+  	public String getCfgBuilderFileName(boolean header) {
+	  assert gen.g.name != null;
+	  ST extST = getTemplates().getInstanceOf("codeFileExtension");
+	  String listenerName = gen.g.name + "CfgBuilder";
+	  return listenerName+extST.render();
+	}
+
 	/**
 	 * Gets the maximum number of 16-bit unsigned integers that can be encoded
 	 * in a single segment (a declaration in target language) of the serialized ATN.

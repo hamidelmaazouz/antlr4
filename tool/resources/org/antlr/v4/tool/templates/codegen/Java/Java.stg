@@ -216,6 +216,20 @@ public class <file.grammarName>BaseVisitor\<T> extends AbstractParseTreeVisitor\
 }
 >>
 
+CfgBuilderFile(file, header, namedActions) ::= <<
+<fileHeader(file.grammarFileName, file.ANTLRVersion)>
+<if(file.genPackage)>
+package <file.genPackage>;
+<endif>
+<header>
+import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
+
+public class <file.grammarName>CfgBuilder\<T> extends AbstractParseTreeVisitor\<T> implements <file.grammarName>Visitor\<T> {
+	<file.cfgNodeRuleNames:{lname |
+@Override public T visit<lname; format="cap">(<file.parserName>.<lname; format="cap">Context ctx) { return visitChildren(ctx); \}}; separator="\n">
+}
+>>
+
 fileHeader(grammarFileName, ANTLRVersion) ::= <<
 // Generated from <grammarFileName> by ANTLR <ANTLRVersion>
 >>
