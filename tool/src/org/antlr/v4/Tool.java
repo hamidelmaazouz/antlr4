@@ -770,7 +770,10 @@ public class Tool {
 		}
 		// output directory is a function of where the grammar file lives
 		// for subdir/T.g4, you get subdir here.  Well, depends on -o etc...
-		File outputDir = getOutputDirectory(g.fileName);
+		return openOutputFileWriter(getOutputDirectory(g.fileName), fileName);
+	}
+
+	private Writer openOutputFileWriter(File outputDir, String fileName) throws IOException {
 		File outputFile = new File(outputDir, fileName);
 
 		if (!outputDir.exists()) {
@@ -815,7 +818,15 @@ public class Tool {
 		if ( exact_output_dir ) {
 			return new_getOutputDirectory(fileNameWithPath);
 		}
+		return resolveOutputDirectory(fileNameWithPath, outputDirectory, haveOutputDir);
+	}
 
+	/** @since 4.7.1 in response to -Xexact-output-dir */
+	public File new_getOutputDirectory(String fileNameWithPath) {
+		return resolveExactOutputDirectory(fileNameWithPath, outputDirectory, haveOutputDir);
+	}
+
+	private static File resolveOutputDirectory(String fileNameWithPath, String baseDirectory, boolean haveBaseDirectory) {
 		File outputDir;
 		String fileDirectory;
 
@@ -835,7 +846,7 @@ public class Tool {
 		else {
 			fileDirectory = fileNameWithPath.substring(0, fileNameWithPath.lastIndexOf(File.separatorChar));
 		}
-		if ( haveOutputDir ) {
+		if ( haveBaseDirectory ) {
 			// -o /tmp /var/lib/t.g4 => /tmp/T.java
 			// -o subdir/output /usr/lib/t.g4 => subdir/output/T.java
 			// -o . /usr/lib/t.g4 => ./T.java
@@ -843,15 +854,15 @@ public class Tool {
 				(new File(fileDirectory).isAbsolute() ||
 					fileDirectory.startsWith("~"))) { // isAbsolute doesn't count this :(
 				// somebody set the dir, it takes precendence; write new file there
-				outputDir = new File(outputDirectory);
+				outputDir = new File(baseDirectory);
 			}
 			else {
 				// -o /tmp subdir/t.g4 => /tmp/subdir/T.java
 				if (fileDirectory != null) {
-					outputDir = new File(outputDirectory, fileDirectory);
+					outputDir = new File(baseDirectory, fileDirectory);
 				}
 				else {
-					outputDir = new File(outputDirectory);
+					outputDir = new File(baseDirectory);
 				}
 			}
 		}
@@ -865,8 +876,7 @@ public class Tool {
 		return outputDir;
 	}
 
-	/** @since 4.7.1 in response to -Xexact-output-dir */
-	public File new_getOutputDirectory(String fileNameWithPath) {
+	private static File resolveExactOutputDirectory(String fileNameWithPath, String baseDirectory, boolean haveBaseDirectory) {
 		File outputDir;
 		String fileDirectory;
 
@@ -879,12 +889,12 @@ public class Tool {
 		else {
 			fileDirectory = fileNameWithPath.substring(0, fileNameWithPath.lastIndexOf(File.separatorChar));
 		}
-		if ( haveOutputDir ) {
+		if ( haveBaseDirectory ) {
 			// -o /tmp /var/lib/t.g4 => /tmp/T.java
 			// -o subdir/output /usr/lib/t.g4 => subdir/output/T.java
 			// -o . /usr/lib/t.g4 => ./T.java
 			// -o /tmp subdir/t.g4 => /tmp/T.java
-			outputDir = new File(outputDirectory);
+			outputDir = new File(baseDirectory);
 		}
 		else {
 			// they didn't specify a -o dir so just write to location
