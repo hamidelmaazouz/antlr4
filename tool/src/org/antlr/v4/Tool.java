@@ -18,6 +18,7 @@ import org.antlr.v4.automata.LexerATNFactory;
 import org.antlr.v4.automata.ParserATNFactory;
 import org.antlr.v4.codegen.CodeGenPipeline;
 import org.antlr.v4.codegen.CodeGenerator;
+import org.antlr.v4.codegen.SourceType;
 import org.antlr.v4.misc.Graph;
 import org.antlr.v4.parse.ANTLRParser;
 import org.antlr.v4.parse.GrammarASTAdaptor;
@@ -785,6 +786,20 @@ public class Tool {
 		// output directory is a function of where the grammar file lives
 		// for subdir/T.g4, you get subdir here.  Well, depends on -o etc...
 		return openOutputFileWriter(getOutputDirectory(g.fileName), fileName);
+	}
+
+	/**
+	 * Like {@link #getOutputFileWriter(Grammar, String)}, but a header file
+	 * goes to the -header-dir directory when that option is set.
+	 */
+	public Writer getOutputFileWriter(Grammar g, String fileName, SourceType sourceType) throws IOException {
+		if ( sourceType!=SourceType.HEADER || headerOutputDirectory==null ) {
+			return getOutputFileWriter(g, fileName);
+		}
+		if (outputDirectory == null) {
+			return new StringWriter();
+		}
+		return openOutputFileWriter(getHeaderOutputDirectory(g.fileName), fileName);
 	}
 
 	private Writer openOutputFileWriter(File outputDir, String fileName) throws IOException {

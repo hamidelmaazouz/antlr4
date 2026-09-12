@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestHeaderOutputDirectory {
 	private static final String GRAMMAR =
@@ -63,6 +65,57 @@ public class TestHeaderOutputDirectory {
 				"gen/TListener.cpp", "gen/TListener.h",
 				"gen/TParser.cpp", "gen/TParser.h"),
 			generatedFiles());
+	}
+
+	@Test
+	public void testHeadersGoToHeaderDirectory() throws IOException {
+		ErrorQueue errors = new ErrorQueue();
+		generate(errors, "-Dlanguage=Cpp", "-o", gen.toString(), "-header-dir", inc.toString(), grammarFile.toString());
+
+		assertEquals(0, errors.errors.size(), errors.toString());
+		assertEquals(set(
+				"gen/T.interp", "gen/T.tokens",
+				"gen/TBaseListener.cpp", "gen/TLexer.cpp", "gen/TLexer.interp", "gen/TLexer.tokens",
+				"gen/TListener.cpp", "gen/TParser.cpp",
+				"inc/TBaseListener.h", "inc/TLexer.h", "inc/TListener.h", "inc/TParser.h"),
+			generatedFiles());
+	}
+
+	@Test
+	public void testListenerAndVisitorHeadersGoToHeaderDirectory() throws IOException {
+		ErrorQueue errors = new ErrorQueue();
+		generate(errors, "-Dlanguage=Cpp", "-visitor", "-listener",
+			"-o", gen.toString(), "-header-dir", inc.toString(), grammarFile.toString());
+
+		assertEquals(0, errors.errors.size(), errors.toString());
+		assertEquals(set(
+				"gen/T.interp", "gen/T.tokens",
+				"gen/TBaseListener.cpp", "gen/TBaseVisitor.cpp", "gen/TLexer.cpp", "gen/TLexer.interp",
+				"gen/TLexer.tokens", "gen/TListener.cpp", "gen/TParser.cpp", "gen/TVisitor.cpp",
+				"inc/TBaseListener.h", "inc/TBaseVisitor.h", "inc/TLexer.h", "inc/TListener.h",
+				"inc/TParser.h", "inc/TVisitor.h"),
+			generatedFiles());
+	}
+
+	@Test
+	public void testTargetWithoutHeadersIgnoresHeaderDirectory() throws IOException {
+		Path plain = tempDir.resolve("plain");
+		ErrorQueue errors = new ErrorQueue();
+		generate(errors, "-o", plain.toString(), grammarFile.toString());
+		generate(errors, "-o", gen.toString(), "-header-dir", inc.toString(), grammarFile.toString());
+
+		assertEquals(0, errors.errors.size(), errors.toString());
+		assertFalse(Files.exists(inc));
+		Set<String> generated = generatedFiles();
+		Set<String> withOption = new TreeSet<>();
+		Set<String> withoutOption = new TreeSet<>();
+		for (String name : generated) {
+			if (name.startsWith("gen/")) withOption.add(name.substring("gen/".length()));
+			else if (name.startsWith("plain/")) withoutOption.add(name.substring("plain/".length()));
+		}
+		assertEquals(withoutOption, withOption);
+		assertTrue(withOption.contains("TParser.java"), withOption.toString());
+		assertEquals(generated.size(), withOption.size() + withoutOption.size(), generated.toString());
 	}
 
 	@Test
