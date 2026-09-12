@@ -27,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
@@ -192,7 +193,7 @@ public class TestHeaderOutputDirectory {
 		List<File> files = dependencies("-Dlanguage=Cpp", "-o", gen.toString());
 
 		assertPlacement(files, gen, gen,
-			"TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens",
+			"TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens", "TLexer.h",
 			"TListener.h", "TListener.cpp", "TBaseListener.h", "TBaseListener.cpp");
 	}
 
@@ -202,7 +203,7 @@ public class TestHeaderOutputDirectory {
 			"-o", gen.toString(), "-header-dir", inc.toString());
 
 		assertPlacement(files, gen, inc,
-			"TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens",
+			"TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens", "TLexer.h",
 			"TListener.h", "TListener.cpp", "TBaseListener.h", "TBaseListener.cpp",
 			"TVisitor.h", "TVisitor.cpp", "TBaseVisitor.h", "TBaseVisitor.cpp");
 	}
@@ -211,7 +212,19 @@ public class TestHeaderOutputDirectory {
 	public void testDependenciesListHeadersInHeaderDirectoryWithoutOutputDirectory() {
 		List<File> files = dependencies("-Dlanguage=Cpp", "-no-listener", "-header-dir", inc.toString());
 
-		assertPlacement(files, tempDir, inc, "TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens");
+		assertPlacement(files, tempDir, inc,
+			"TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens", "TLexer.h");
+	}
+
+	@Test
+	public void testDependenciesListNoHeadersForTargetWithoutHeaders() {
+		List<File> files = dependencies("-Dlanguage=Java", "-o", gen.toString(), "-header-dir", inc.toString());
+
+		for (File file : files) {
+			assertFalse(file.getName().endsWith(".h"), files.toString());
+			assertEquals(gen.toFile(), file.getParentFile(), file.toString());
+		}
+		assertTrue(files.contains(gen.resolve("TLexer.java").toFile()), files.toString());
 	}
 
 	@Test
@@ -292,20 +305,20 @@ public class TestHeaderOutputDirectory {
 	}
 
 	/**
-	 * Every expected name is listed, each header is in the header directory and every other file
-	 * is in the source directory. Exact lists are not compared, and TLexer.h is ignored, because the
-	 * headerFile template check in BuildDependencyGenerator can add entries when tests share the
-	 * template cache.
+	 * Exactly the expected names are listed, each once, each header is in the header directory and
+	 * every other file is in the source directory.
 	 */
 	private static void assertPlacement(List<File> files, Path sources, Path headers, String... expectedNames) {
-		Set<String> names = new TreeSet<>();
+		List<String> names = new ArrayList<>();
 		for (File file : files) {
 			names.add(file.getName());
 			Path expectedDir = file.getName().endsWith(".h") ? headers : sources;
 			assertEquals(expectedDir.toFile(), file.getParentFile(), file.toString());
 		}
-		names.remove("TLexer.h");
-		assertEquals(set(expectedNames), names, files.toString());
+		Collections.sort(names);
+		List<String> expected = new ArrayList<>(Arrays.asList(expectedNames));
+		Collections.sort(expected);
+		assertEquals(expected, names, files.toString());
 	}
 
 	/** Attaches the listener before argument handling, so option errors are captured too. */
