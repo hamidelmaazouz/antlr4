@@ -96,6 +96,7 @@ public class Tool {
 
 	public File inputDirectory; // used by mvn plugin but not set by tool itself.
 	public String outputDirectory;
+	public String headerOutputDirectory;
 	public String libDirectory;
 	public boolean generate_ATN_dot = false;
 	public String grammarEncoding = null; // use default locale's encoding
@@ -116,6 +117,7 @@ public class Tool {
 
     public final static Option[] optionDefs = {
 		new Option("outputDirectory",             "-o", OptionArgType.STRING, "specify output directory where all output is generated"),
+		new Option("headerOutputDirectory",       "-header-dir", OptionArgType.STRING, "specify output directory for generated header files (default: -o dir)"),
 		new Option("libDirectory",                "-lib", OptionArgType.STRING, "specify location of grammars, tokens files"),
 		new Option("generate_ATN_dot",            "-atn", "generate rule augmented transition network diagrams"),
 		new Option("grammarEncoding",             "-encoding", OptionArgType.STRING, "specify grammar file encoding; e.g., euc-jp"),
@@ -251,6 +253,18 @@ public class Tool {
 		}
 		else {
 			outputDirectory = ".";
+		}
+		if ( headerOutputDirectory!=null ) {
+			if (headerOutputDirectory.endsWith("/") ||
+				headerOutputDirectory.endsWith("\\")) {
+				headerOutputDirectory =
+					headerOutputDirectory.substring(0, headerOutputDirectory.length() - 1);
+			}
+			File headerDir = new File(headerOutputDirectory);
+			if (headerDir.exists() && !headerDir.isDirectory()) {
+				errMgr.toolError(ErrorType.OUTPUT_DIR_IS_FILE, headerOutputDirectory);
+				headerOutputDirectory = null;
+			}
 		}
 		if ( libDirectory!=null ) {
 			if (libDirectory.endsWith("/") ||
@@ -819,6 +833,24 @@ public class Tool {
 			return new_getOutputDirectory(fileNameWithPath);
 		}
 		return resolveOutputDirectory(fileNameWithPath, outputDirectory, haveOutputDir);
+	}
+
+	/**
+	 * Return the location where ANTLR will generate header files for a given
+	 * file. The -header-dir value is resolved with the same rules as -o
+	 * in {@link #getOutputDirectory}. Without -header-dir this is the
+	 * output directory.
+	 *
+	 * @param fileNameWithPath path to input source
+	 */
+	public File getHeaderOutputDirectory(String fileNameWithPath) {
+		if ( headerOutputDirectory==null ) {
+			return getOutputDirectory(fileNameWithPath);
+		}
+		if ( exact_output_dir ) {
+			return resolveExactOutputDirectory(fileNameWithPath, headerOutputDirectory, true);
+		}
+		return resolveOutputDirectory(fileNameWithPath, headerOutputDirectory, true);
 	}
 
 	/** @since 4.7.1 in response to -Xexact-output-dir */
