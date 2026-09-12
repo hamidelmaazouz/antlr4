@@ -119,8 +119,9 @@ public abstract class Target {
 		getCodeGenerator().write(outputFileST, fileName);
 	}
 
-	/** A header file goes to the -header-dir directory when that option is set.
-	 *  Every other file is written by {@link #genFile(Grammar, ST, String)}.
+	/** A header file goes to the -header-dir directory when that option is set,
+	 *  without passing through overrides of {@link #genFile(Grammar, ST, String)}.
+	 *  Every other file is written by that method.
 	 */
 	protected void genFile(Grammar g, ST outputFileST, String fileName, SourceType sourceType)
 	{

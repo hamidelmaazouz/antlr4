@@ -790,7 +790,8 @@ public class Tool {
 
 	/**
 	 * Like {@link #getOutputFileWriter(Grammar, String)}, but a header file
-	 * goes to the -header-dir directory when that option is set.
+	 * goes to the -header-dir directory when that option is set. That header
+	 * file does not pass through overrides of the two-argument method.
 	 */
 	public Writer getOutputFileWriter(Grammar g, String fileName, SourceType sourceType) throws IOException {
 		if ( sourceType!=SourceType.HEADER || headerOutputDirectory==null ) {

@@ -9,16 +9,20 @@ package org.antlr.v4.test.tool;
 import org.antlr.v4.Tool;
 import org.antlr.v4.test.runtime.ErrorQueue;
 import org.antlr.v4.tool.ANTLRMessage;
+import org.antlr.v4.tool.BuildDependencyGenerator;
 import org.antlr.v4.tool.ErrorType;
+import org.antlr.v4.tool.Grammar;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -179,16 +183,80 @@ public class TestHeaderOutputDirectory {
 		assertEquals(set(
 				"gen/sub/T.interp", "gen/sub/T.tokens", "gen/sub/TLexer.cpp", "gen/sub/TLexer.interp",
 				"gen/sub/TLexer.tokens", "gen/sub/TParser.cpp",
-				"inc/sub/TLexer.h", "inc/sub/TParser.h",
-				"sub/T.g4"),
+				"inc/sub/TLexer.h", "inc/sub/TParser.h"),
 			generatedFiles());
 	}
 
 	@Test
-	public void testTrailingSeparatorIsAccepted() {
+	public void testDependenciesWithoutHeaderDirectoryAreUnchanged() {
+		List<File> files = dependencies("-Dlanguage=Cpp", "-o", gen.toString());
+
+		assertPlacement(files, gen, gen,
+			"TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens",
+			"TListener.h", "TListener.cpp", "TBaseListener.h", "TBaseListener.cpp");
+	}
+
+	@Test
+	public void testDependenciesListHeadersInHeaderDirectory() {
+		List<File> files = dependencies("-Dlanguage=Cpp", "-visitor",
+			"-o", gen.toString(), "-header-dir", inc.toString());
+
+		assertPlacement(files, gen, inc,
+			"TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens",
+			"TListener.h", "TListener.cpp", "TBaseListener.h", "TBaseListener.cpp",
+			"TVisitor.h", "TVisitor.cpp", "TBaseVisitor.h", "TBaseVisitor.cpp");
+	}
+
+	@Test
+	public void testDependenciesListHeadersInHeaderDirectoryWithoutOutputDirectory() {
+		List<File> files = dependencies("-Dlanguage=Cpp", "-no-listener", "-header-dir", inc.toString());
+
+		assertPlacement(files, tempDir, inc, "TParser.h", "TParser.cpp", "T.tokens", "TLexer.cpp", "TLexer.tokens");
+	}
+
+	@Test
+	public void testDependencyOverrideIsReachedForHeadersWithoutHeaderDirectory() {
+		ErrorQueue errors = new ErrorQueue();
+		Tool tool = createTool(errors, "-Dlanguage=Cpp", "-no-listener", "-o", gen.toString());
+		Grammar g = tool.loadGrammar(grammarFile.toString());
+		Set<String> overridden = new TreeSet<>();
+		new BuildDependencyGenerator(tool, g) {
+			@Override
+			public File getOutputFile(String fileName) {
+				overridden.add(fileName);
+				return super.getOutputFile(fileName);
+			}
+		}.getGeneratedFileList();
+
+		assertEquals(0, errors.errors.size(), errors.toString());
+		assertTrue(overridden.contains("TParser.h"), overridden.toString());
+	}
+
+	@Test
+	public void testWriterOverrideIsReachedForHeadersWithoutHeaderDirectory() {
+		ErrorQueue errors = new ErrorQueue();
+		Set<String> overridden = new TreeSet<>();
+		Tool tool = new Tool(new String[] {"-Dlanguage=Cpp", "-no-listener", "-o", gen.toString(),
+				grammarFile.toString()}) {
+			@Override
+			public Writer getOutputFileWriter(Grammar g, String fileName) throws IOException {
+				overridden.add(fileName);
+				return super.getOutputFileWriter(g, fileName);
+			}
+		};
+		tool.addListener(errors);
+		tool.processGrammarsOnCommandLine();
+
+		assertEquals(0, errors.errors.size(), errors.toString());
+		assertTrue(overridden.containsAll(set("TLexer.h", "TParser.h")), overridden.toString());
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"/", "\\"})
+	public void testTrailingSeparatorIsAccepted(String separator) {
 		ErrorQueue errors = new ErrorQueue();
 		Tool tool = createTool(errors, "-Dlanguage=Cpp", "-o", gen.toString(),
-			"-header-dir", inc + File.separator, grammarFile.toString());
+			"-header-dir", inc + separator, grammarFile.toString());
 
 		assertEquals(0, errors.errors.size(), errors.toString());
 		assertEquals(inc.toFile(), tool.getHeaderOutputDirectory(grammarFile.toString()));
@@ -212,6 +280,32 @@ public class TestHeaderOutputDirectory {
 		Tool tool = createTool(errors, args);
 		tool.processGrammarsOnCommandLine();
 		return tool;
+	}
+
+	private List<File> dependencies(String... args) {
+		ErrorQueue errors = new ErrorQueue();
+		Tool tool = createTool(errors, args);
+		Grammar g = tool.loadGrammar(grammarFile.toString());
+		List<File> files = new BuildDependencyGenerator(tool, g).getGeneratedFileList();
+		assertEquals(0, errors.errors.size(), errors.toString());
+		return files;
+	}
+
+	/**
+	 * Every expected name is listed, each header is in the header directory and every other file
+	 * is in the source directory. Exact lists are not compared, and TLexer.h is ignored, because the
+	 * headerFile template check in BuildDependencyGenerator can add entries when tests share the
+	 * template cache.
+	 */
+	private static void assertPlacement(List<File> files, Path sources, Path headers, String... expectedNames) {
+		Set<String> names = new TreeSet<>();
+		for (File file : files) {
+			names.add(file.getName());
+			Path expectedDir = file.getName().endsWith(".h") ? headers : sources;
+			assertEquals(expectedDir.toFile(), file.getParentFile(), file.toString());
+		}
+		names.remove("TLexer.h");
+		assertEquals(set(expectedNames), names, files.toString());
 	}
 
 	/** Attaches the listener before argument handling, so option errors are captured too. */
@@ -240,7 +334,7 @@ public class TestHeaderOutputDirectory {
 				.filter(Files::isRegularFile)
 				.map(tempDir::relativize)
 				.map(p -> p.toString().replace(File.separatorChar, '/'))
-				.filter(name -> !name.equals("T.g4") && !name.equals("not-a-directory"))
+				.filter(name -> !name.equals("T.g4") && !name.equals("sub/T.g4") && !name.equals("not-a-directory"))
 				.collect(Collectors.toCollection(TreeSet::new));
 		}
 	}
