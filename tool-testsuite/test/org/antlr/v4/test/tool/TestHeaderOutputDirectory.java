@@ -13,6 +13,9 @@ import org.antlr.v4.tool.ErrorType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -116,6 +119,69 @@ public class TestHeaderOutputDirectory {
 		assertEquals(withoutOption, withOption);
 		assertTrue(withOption.contains("TParser.java"), withOption.toString());
 		assertEquals(generated.size(), withOption.size() + withoutOption.size(), generated.toString());
+	}
+
+	/**
+	 * One row per placement case: -o (null when absent), -header-dir, -Xexact-output-dir,
+	 * grammar path, expected source directory and expected header directory.
+	 */
+	static Stream<Arguments> placements() {
+		String sep = File.separator;
+		String sub = "sub" + sep + "T.g4";
+		String absolute = new File(System.getProperty("java.io.tmpdir"), "T.g4").getAbsolutePath();
+		String home = "~" + sep + "x" + sep + "T.g4";
+		return Stream.of(
+			Arguments.of("gen", "inc", false, "T.g4", "gen" + sep + ".", "inc" + sep + "."),
+			Arguments.of("gen", "inc", false, sub, "gen" + sep + "sub", "inc" + sep + "sub"),
+			Arguments.of("gen", "inc", true, sub, "gen", "inc"),
+			Arguments.of("gen", "inc", false, absolute, "gen", "inc"),
+			Arguments.of("gen", "inc", true, absolute, "gen", "inc"),
+			Arguments.of(null, "inc", false, sub, "sub", "inc" + sep + "sub"),
+			Arguments.of(null, "inc", true, sub, "sub", "inc"),
+			Arguments.of("gen", "inc", false, home, "gen", "inc"),
+			Arguments.of("gen", "gen", false, sub, "gen" + sep + "sub", "gen" + sep + "sub"),
+			Arguments.of("gen", "gen", true, sub, "gen", "gen")
+		);
+	}
+
+	@ParameterizedTest
+	@MethodSource("placements")
+	public void testHeaderDirectoryResolvesLikeOutputDirectory(String outputDir, String headerDir, boolean exact,
+															   String grammar, String sources, String headers) {
+		List<String> args = new ArrayList<>();
+		if (outputDir != null) {
+			args.addAll(Arrays.asList("-o", outputDir));
+		}
+		args.addAll(Arrays.asList("-header-dir", headerDir));
+		if (exact) {
+			args.add("-Xexact-output-dir");
+		}
+		ErrorQueue errors = new ErrorQueue();
+		Tool tool = createTool(errors, args.toArray(new String[0]));
+
+		assertEquals(0, errors.errors.size(), errors.toString());
+		assertEquals(new File(sources), tool.getOutputDirectory(grammar));
+		assertEquals(new File(headers), tool.getHeaderOutputDirectory(grammar));
+	}
+
+	@Test
+	public void testGrammarSubdirectoryIsKeptUnderHeaderDirectory() throws IOException {
+		Path sub = tempDir.resolve("sub");
+		Files.createDirectories(sub);
+		Files.move(grammarFile, sub.resolve("T.g4"));
+		ErrorQueue errors = new ErrorQueue();
+		Tool tool = createTool(errors, "-Dlanguage=Cpp", "-no-listener",
+			"-o", gen.toString(), "-header-dir", inc.toString(), "sub" + File.separator + "T.g4");
+		tool.inputDirectory = tempDir.toFile();
+		tool.processGrammarsOnCommandLine();
+
+		assertEquals(0, errors.errors.size(), errors.toString());
+		assertEquals(set(
+				"gen/sub/T.interp", "gen/sub/T.tokens", "gen/sub/TLexer.cpp", "gen/sub/TLexer.interp",
+				"gen/sub/TLexer.tokens", "gen/sub/TParser.cpp",
+				"inc/sub/TLexer.h", "inc/sub/TParser.h",
+				"sub/T.g4"),
+			generatedFiles());
 	}
 
 	@Test
